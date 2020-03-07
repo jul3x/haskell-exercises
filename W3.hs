@@ -77,28 +77,28 @@ classify' (Right e:es) a b = (classify' es a (e:b))
 -- Also define a Person value fred, and the functions getAge, getname,
 -- setAge and setName (see below).
 
-data Person = Int String
+data Person = Person Int String
   deriving Show
 
 -- fred is a person whose name is Fred and age is 90
 fred :: Person
-fred = (90 "Fred")
+fred = Person 90 "Fred"
 
--- -- getName returns the name of the person
--- getName :: Person -> String
--- getName (Person _ x) = x
+-- getName returns the name of the person
+getName :: Person -> String
+getName (Person _ x) = x
 
--- -- getAge returns the age of the person
--- getAge :: Person -> Int
--- getAge (Person x _) = x
+-- getAge returns the age of the person
+getAge :: Person -> Int
+getAge (Person x _) = x
 
--- -- setName takes a person and returns a new person with the name changed
--- setName :: String -> Person -> Person
--- setName name (Person x _) = Person x name
+-- setName takes a person and returns a new person with the name changed
+setName :: String -> Person -> Person
+setName name (Person x _) = Person x name
 
--- -- setAge does likewise for age
--- setAge :: Int -> Person -> Person
--- setAge age (Person _ x) = Person age x
+-- setAge does likewise for age
+setAge :: Int -> Person -> Person
+setAge age (Person _ x) = Person age x
 
 
 -- Ex 6: define a datatype TwoCounters which contains two Int
@@ -112,27 +112,27 @@ fred = (90 "Fred")
 -- getB (incB (incA zeros))
 --   ==> 1
 
-data TwoCounters = Undefined
+data TwoCounters = TwoCounters Int Int
 
 -- zeros is a TwoCounters value with both counters initialized to 0
 zeros :: TwoCounters
-zeros = undefined
+zeros = TwoCounters 0 0
 
 -- getA returns the value of the "A" counter
 getA :: TwoCounters -> Int
-getA tc = undefined
+getA (TwoCounters x _) = x
 
 -- getB returns the value of the "B" counter
 getB :: TwoCounters -> Int
-getB tc = undefined
+getB (TwoCounters _ x) = x
 
 -- incA increases the value of the "A" counter by one
 incA :: TwoCounters -> TwoCounters
-incA tc = undefined
+incA (TwoCounters a b) = TwoCounters (a+1) b
 
 -- incB does likewise for the "B" counter
 incB :: TwoCounters -> TwoCounters
-incB tc = undefined
+incB (TwoCounters a b) = TwoCounters a (b+1)
 
 -- Ex 7: define a datatype UpDown that represents a counter that can
 -- either be in incresing or decreasing mode. Also implement the
@@ -151,25 +151,28 @@ incB tc = undefined
 -- get (tick (tick (toggle (tick zero))))
 --   ==> -1
 
-data UpDown = UpDownUndefined1 | UpDownUndefined2
+data UpDown = Up' Int | Down' Int
 
 -- zero is an increasing counter with value 0
 zero :: UpDown
-zero = undefined
+zero = Up' 0
 
 -- get returns the counter value
 get :: UpDown -> Int
-get ud = undefined
+get (Up' x) = x
+get (Down' x) = x
 
 -- tick increases an increasing counter by one or decreases a
 -- decreasing counter by one
 tick :: UpDown -> UpDown
-tick ud = undefined
+tick (Up' x) = Up' (x+1)
+tick (Down' x) = Down' (x-1)
 
 -- toggle changes an increasing counter into a decreasing counter and
 -- vice versa
 toggle :: UpDown -> UpDown
-toggle ud = undefined
+toggle (Up'  x) = Down' x
+toggle (Down' x) = Up' x
 
 -- !!!!!
 -- The next exercises use the binary tree type defined like this:
@@ -182,13 +185,15 @@ data Tree a = Leaf | Node a (Tree a) (Tree a)
 -- because the tree might be empty (i.e. just a Leaf)
 
 valAtRoot :: Tree a -> Maybe a
-valAtRoot t = undefined
+valAtRoot (Leaf) = Nothing
+valAtRoot (Node a _ _) = Just a
 
 -- Ex 9: compute the size of a tree, that is, the number of Node
 -- constructors in it
 
 treeSize :: Tree a -> Int
-treeSize t = undefined
+treeSize Leaf = 0
+treeSize (Node _ x y) = treeSize x + treeSize y + 1
 
 -- Ex 10: get the leftmost value in the tree. The return value is
 -- Maybe a because the tree might be empty.
@@ -206,7 +211,9 @@ treeSize t = undefined
 --   ==> Just 2
 
 leftest :: Tree a -> Maybe a
-leftest t = undefined
+leftest Leaf = Nothing
+leftest (Node x Leaf _) = Just x
+leftest (Node _ l _) = leftest l
 
 -- Ex 11: implement map for trees.
 --
@@ -217,7 +224,8 @@ leftest t = undefined
 --   ==> (Node 2 (Node 3 Leaf Leaf) (Node 4 Leaf Leaf))
 
 mapTree :: (a -> b) -> Tree a -> Tree b
-mapTree f t = undefined
+mapTree f Leaf = Leaf
+mapTree f (Node x y z) = Node (f x) (mapTree f y) (mapTree f z)
 
 -- Ex 12: insert the given value into the leftmost possible place. You
 -- need to return a new tree since the function is pure.
@@ -242,7 +250,8 @@ mapTree f t = undefined
 
 
 insertL :: a -> Tree a -> Tree a
-insertL x t = undefined
+insertL x Leaf = Node x Leaf Leaf
+insertL x' (Node x y z) = Node x (insertL x' y) z
 
 -- Ex 13: implement the function measure, that takes a tree and
 -- returns a tree with the same shape, but with the value at every
@@ -269,7 +278,12 @@ insertL x t = undefined
 
 
 measure :: Tree a -> Tree Int
-measure t = undefined
+measure Leaf = Leaf
+measure (Node _ l r) = Node (val l' + val r' + 1) l' r'
+  where val Leaf = 0
+        val (Node v _ _) = v
+        l' = measure l
+        r' = measure r
 
 -- Ex 14: the standard library function
 --   foldr :: (a -> b -> b) -> b -> [a] -> b
@@ -288,13 +302,13 @@ mysum :: [Int] -> Int
 mysum is = foldr sumf 0 is
 
 sumf :: Int -> Int -> Int
-sumf x y = undefined
+sumf x y = x + y
 
 mylength :: [a] -> Int
 mylength xs = foldr lengthf 0 xs
 
 lengthf :: a -> Int -> Int
-lengthf x y = undefined
+lengthf x y = 1 + y
 
 -- Ex 15: implement the function foldTree that works like foldr, but
 -- for Trees.
@@ -327,7 +341,8 @@ treeLeaves :: Tree a -> Int
 treeLeaves t = foldTree leaft 1 t
 
 foldTree :: (a -> b -> b -> b) -> b -> Tree a -> b
-foldTree f x t = undefined
+foldTree f x Leaf = x
+foldTree f x' (Node x y z) = f x (foldTree f x' y) (foldTree f x' z)
 
 -- Ex 16: You'll find a Color datatype below. It has the three basic
 -- colours Red, Green and Blue, and two color transformations, Mix and
@@ -361,4 +376,8 @@ data Color = Red | Green | Blue | Mix Color Color | Darken Double Color
   deriving Show
 
 rgb :: Color -> [Double]
-rgb col = undefined
+rgb Red = [1, 0, 0]
+rgb Green = [0, 1, 0]
+rgb Blue = [0, 0, 1]
+rgb (Mix x y) = zipWith (\x y -> min 1.0 (x + y)) (rgb x) (rgb y)
+rgb (Darken x y) = map (\v -> max 0.0 ((1-x) * v)) (rgb y) 
