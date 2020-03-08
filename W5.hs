@@ -28,10 +28,10 @@ import Data.List
 -- True *! 3 ==> [True,True,True]
 
 (%$) :: String -> String -> String
-x %$ y = undefined
+x %$ y = x ++ y ++ x
 
 (*!) :: Int -> a -> [a]
-n *! val = undefined
+n *! val = replicate n val
 
 -- Ex 2: implement the function allEqual which returns True if all
 -- values in the list are equal.
@@ -46,7 +46,8 @@ n *! val = undefined
 -- you remove the Eq a => constraint from the type!
 
 allEqual :: Eq a => [a] -> Bool
-allEqual xs = undefined
+allEqual [] = True
+allEqual (x:xs) = (length $ filter (/=x) xs) == 0
 
 -- Ex 3: implement the function secondSmallest that returns the second
 -- smallest value in the list, or Nothing if there is no such value.
@@ -58,7 +59,12 @@ allEqual xs = undefined
 -- secondSmallest [5,3,7,2,3,1]  ==>  Just 2
 
 secondSmallest :: Ord a => [a] -> Maybe a
-secondSmallest xs = undefined
+secondSmallest [] = Nothing
+secondSmallest [x] = Nothing
+secondSmallest xs = Just v
+  where m = minimum xs
+        xs' = delete m xs
+        v = minimum xs'
 
 -- Ex 4: find how two lists differ from each other. If they have
 -- different lengths, return
@@ -78,7 +84,14 @@ secondSmallest xs = undefined
 --  findDifference [0,0,0] [0,0,0,0]
 --    ==> Just "3 /= 4"
 
-findDifference = undefined
+findDifference :: (Eq a, Show a) => [a] -> [a] -> Maybe String
+findDifference [] [] = Nothing
+findDifference [] x = Just ("0 /= " ++ show (length x))
+findDifference x [] = Just (show (length x) ++ " /= 0")
+findDifference (x:xs) (y:ys)
+  | length xs /= length ys = Just (show (length xs + 1) ++ " /= " ++ show (length ys + 1))
+  | x /= y = Just (show x ++ " /= " ++ show y)
+  | otherwise = findDifference xs ys
 
 -- Ex 5: compute the average of a list of values of the Fractional
 -- class.
@@ -90,7 +103,7 @@ findDifference = undefined
 -- length to a Fractional
 
 average :: Fractional a => [a] -> a
-average xs = undefined
+average xs = sum xs / fromIntegral (length xs)
 
 -- Ex 6: define an Eq instance for the type Foo below.
 
@@ -98,15 +111,18 @@ data Foo = Bar | Quux | Xyzzy
   deriving Show
 
 instance Eq Foo where
-  (==) = error "implement me"
+  (==) (Bar) (Bar) = True 
+  (==) (Quux) (Quux) = True 
+  (==) (Xyzzy) (Xyzzy) = True 
+  (==) x y = False
 
 -- Ex 7: implement an Ord instance for Foo so that Quux < Bar < Xyzzy
 
 instance Ord Foo where
-  compare = error "implement me?"
-  (<=) = error "and me?"
-  min = error "and me?"
-  max = error "and me?"
+  Quux <= Bar   = True
+  Bar <= Xyzzy  = True
+  Quux <= Xyzzy = True
+  x <= y        = x == y
 
 -- Ex 8: here is a type for a 3d vector. Implement an Eq instance for it.
 
@@ -114,7 +130,7 @@ data Vector = Vector Integer Integer Integer
   deriving Show
 
 instance Eq Vector where
-  (==) = error "implement me"
+  (Vector x y z) == (Vector a b c) = x == a && y == b && z == c
 
 -- Ex 9: implementa Num instance for Vector such that all the
 -- arithmetic operations work componentwise.
@@ -129,6 +145,12 @@ instance Eq Vector where
 -- signum (Vector (-1) 2 (-3)) ==> Vector (-1) 1 (-1)
 
 instance Num Vector where
+  Vector a b c + Vector x y z = Vector (a+x) (b+y) (c+z)
+  Vector a b c * Vector x y z = Vector (a*x) (b*y) (c*z)
+  signum (Vector a b c) = Vector (signum a) (signum b) (signum c)
+  negate (Vector a b c) = Vector (negate a) (negate b) (negate c)
+  abs (Vector a b c) = Vector (abs a) (abs b) (abs c)
+  fromInteger x = Vector x x x
 
 -- Ex 10: compute how many times each value in the list occurs. Return
 -- the frequencies as a list of (frequency,value) pairs.
@@ -140,7 +162,8 @@ instance Num Vector where
 --   ==> [(3,False),(1,True)]
 
 freqs :: Eq a => [a] -> [(Int,a)]
-freqs xs = undefined
+freqs [] = []
+freqs (x:xs) = nubBy (\(a, b) (c, d) -> b == d) ((length (filter (==x) xs) + 1, x):freqs xs)
 
 -- Ex 11: implement an Eq instance for the following binary tree type
 
@@ -148,7 +171,11 @@ data ITree = ILeaf | INode Int ITree ITree
   deriving Show
 
 instance Eq ITree where
-  (==) = error "implement me"
+  (==) ILeaf ILeaf = True
+  (==) ILeaf _ = False
+  (==) _ ILeaf = False
+  (==) (INode x y z) (INode a b c) = x == a && y == b && z == c 
+  (==) _ _ = False
 
 -- Ex 12: here is a list type parameterized over the type it contains.
 -- Implement an instance "Eq a => Eq (List a)" that compares elements
@@ -158,7 +185,9 @@ data List a = Empty | LNode a (List a)
   deriving Show
 
 instance Eq a => Eq (List a) where
-  (==) = error "implement me"
+  (==) Empty Empty = True
+  (==) (LNode a b) (LNode x y) = a == x && b == y
+  (==) _ _ = False
 
 -- Ex 13: start by reading a bit about Functors. A Functor is a thing
 -- you can "map" over, e.g. lists, Maybes.
@@ -171,7 +200,7 @@ instance Eq a => Eq (List a) where
 --   incrementAll (Just 3.0)  ==>  Just 4.0
 
 incrementAll :: (Functor f, Num n) => f n -> f n
-incrementAll x = undefined
+incrementAll x = fmap (+1) x
 
 -- Ex 14: below you'll find a type Result that works a bit like Maybe,
 -- but there are two different types of "Nothings": one with and one
@@ -183,12 +212,16 @@ data Result a = MkResult a | NoResult | Failure String
   deriving (Show,Eq)
 
 instance Functor Result where
-  fmap f result = error "implement me"
+  fmap f (MkResult x) = MkResult (f x)
+  fmap _ NoResult = NoResult
+  fmap _ (Failure s) = (Failure s)
 
 -- Ex 15: Implement the instance Functor List (for the datatype List
 -- from ex 12)
 
 instance Functor List where
+  fmap f (LNode x y) = LNode (f x) (fmap f y)
+  fmap _ Empty = Empty
 
 -- Ex 16: Fun a is a type that wraps a function Int -> a. Implement a
 -- Functor instance for it.
@@ -202,6 +235,7 @@ runFun :: Fun a -> Int -> a
 runFun (Fun f) x = f x
 
 instance Functor Fun where
+  fmap f (Fun g) = Fun (f . g)
 
 -- Ex 17: this and the next exercise serve as an introduction for the
 -- next week.
@@ -232,7 +266,10 @@ instance Functor Fun where
 --  (True,True,False)
 
 threeRandom :: (Random a, RandomGen g) => g -> (a,a,a)
-threeRandom g = undefined
+threeRandom g = (x,y,z)
+  where (x,g1) = random g
+        (y,g2) = random g1
+        (z,_)  = random g2
 
 -- Ex 18: given a Tree (same type as on Week 3), randomize the
 -- contents of the tree.
@@ -256,4 +293,8 @@ data Tree a = Leaf | Node a (Tree a) (Tree a)
   deriving Show
 
 randomizeTree :: (Random a, RandomGen g) => Tree b -> g -> (Tree a,g)
-randomizeTree t g = undefined
+randomizeTree Leaf g = (Leaf, g)
+randomizeTree (Node a b c) g = (Node z left right, gen)
+  where (z, gen1) = random g
+        (left, gen2) = randomizeTree b gen1
+        (right, gen) = randomizeTree c gen2
